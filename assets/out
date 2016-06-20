@@ -1,10 +1,34 @@
 #!/usr/bin/env bash
 
 SRC_DIR=$1
-
+CONCOURSE_SHARE_BASE='/mnt/concourse_share'
 echo $SRC_DIR
 echo $BUILD_ID
 echo $BUILD_NAME
 echo $BUILD_JOB_NAME
 echo $BUILD_PIPELINE_NAME
 echo $ATC_EXTERNAL_URL
+
+
+
+if [ -e $CONCOURSE_SHARE_BASE ]; then
+
+  if [ ! -d "$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME" ]; then
+    mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME
+  fi
+
+  if [ ! -d "$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME" ]; then
+    mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME
+  fi
+
+  # Create the new directory for this build
+  mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME/$BUILD_ID
+  DEST_DIR=$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME/$BUILD_ID
+
+  rsync -av $SRC_DIR $DEST_DIR
+
+
+else
+  echo "No /mnt/concourse_share directory found"
+  exit 1
+fi
