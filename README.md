@@ -1,1 +1,1 @@
-# concourse-rsync-resrouce
+# concourse-rsync-resource
