@@ -1,0 +1,8 @@
+{
+  "source": {
+    "uri": "git://some-uri",
+    "branch": "develop",
+    "private_key": "..."
+  },
+  "version": { "ref": "61cebf" }
+}
