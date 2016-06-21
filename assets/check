@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
 # This page is deliberately left blank
+exit 0
