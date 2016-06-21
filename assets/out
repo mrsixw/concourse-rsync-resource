@@ -20,23 +20,13 @@ echo $SCRIPT_INPUT_JSON 1>&2
 
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  PIPLINE_DIR="$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME"
-
-  if [ ! -d $PIPLINE_DIR ]; then
-    mkdir -p $PIPLINE_DIR
-    if [ $? -neq 0]; then
-      echo "Failed to create $PIPLINE_DIR" 1>&2
-      exit 1
-    fi
-  fi
-
   VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
   MD5_STRING=`md5 -s $VERSION_STRING | rev | cut -d ' ' -f 1 | rev`
   if [ $? -eq 0 ]; then
     echo $MD5_STRING 1>&2
 
     # Create the new directory for this build
-    DEST_DIR=$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$MD5_STRING
+    DEST_DIR=$CONCOURSE_SHARE_BASE/$MD5_STRING
     mkdir -p $DEST_DIR
     if [ $? -eq 0 ]; then
       rsync -av $SRC_DIR $DEST_DIR 1>&2
