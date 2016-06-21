@@ -2,12 +2,12 @@
 
 SRC_DIR=$1
 CONCOURSE_SHARE_BASE='/mnt/concourse_share'
-echo $SRC_DIR
-echo $BUILD_ID
-echo $BUILD_NAME
-echo $BUILD_JOB_NAME
-echo $BUILD_PIPELINE_NAME
-echo $ATC_EXTERNAL_URL
+echo $SRC_DIR 1>&2
+echo $BUILD_ID 1>&2
+echo $BUILD_NAME 1>&2
+echo $BUILD_JOB_NAME 1>&2
+echo $BUILD_PIPELINE_NAME 1>&2
+echo $ATC_EXTERNAL_URL 1>&2
 
 SCRIPT_INPUT_JSON=''
 while read LINE
@@ -20,22 +20,45 @@ echo $SCRIPT_INPUT_JSON
 
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  if [ ! -d "$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME" ]; then
-    mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME
+  PIPLINE_DIR="$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME"
+
+  if [ ! -d $PIPLINE_DIR ]; then
+    mkdir -p $PIPLINE_DIR
+    if [ $? -neq 0]; then
+      echo "Failed to create $PIPLINE_DIR" 1>&2
+      exit 1
+    fi
   fi
 
-  if [ ! -d "$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME" ]; then
-    mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME
+  VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
+  MD5_STRING=`md5 -s $VERSION_STRING | rev | cut -d ' ' -f 1 | rev`
+  if [ $? -eq 0 ]; then
+    echo $MD5_STRING 1>&2
+
+    # Create the new directory for this build
+    DEST_DIR=$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$MD5_STRING
+    mkdir -p $DEST_DIR
+    if [ $? -eq 0 ]; then
+      rsync -av $SRC_DIR $DEST_DIR 1>&2
+      if [ $? -eq 0 ]; then
+          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"},}"
+          echo $OUTPUT_STRING
+          exit 0
+      else
+        echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
+        exit 1
+      fi
+    else
+      echo "Failed to create destination $DEST_DIR" 1>&2
+      exit 1
+    fi
+
+  else
+    echo "Failed to create MD5 hash"
+    exit 1
   fi
-
-  # Create the new directory for this build
-  mkdir -p $CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME/$BUILD_ID
-  DEST_DIR=$CONCOURSE_SHARE_BASE/$BUILD_PIPELINE_NAME/$BUILD_JOB_NAME/$BUILD_ID
-
-  rsync -av $SRC_DIR $DEST_DIR
-
 
 else
-  echo "No /mnt/concourse_share directory found"
+  echo "No /mnt/concourse_share directory found" 1>&2
   exit 1
 fi
