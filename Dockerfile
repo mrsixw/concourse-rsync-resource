@@ -2,7 +2,7 @@ FROM alpine:latest
 MAINTAINER Steve Williams <mrsixw@gmail.com>
 
 RUN apk update && apk upgrade && \
-    apk add curl wget bash tree
+    apk add curl wget bash tree python
 
 COPY ./assets/check /opt/resource/check
 COPY ./assets/in /opt/resource/in
