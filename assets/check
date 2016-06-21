@@ -1,4 +1,53 @@
 #!/usr/bin/env bash
 
-# This page is deliberately left blank
-exit 0
+CONCOURSE_SHARE_BASE='/mnt/concourse_share'
+
+SCRIPT_INPUT_JSON=''
+while read LINE
+do
+  SCRIPT_INPUT_JSON=$SCRIPT_INPUT_JSON$LINE # spot the concat here!
+done
+
+echo $SCRIPT_INPUT_JSON 1>&2
+
+if [ -e $CONCOURSE_SHARE_BASE ]; then
+
+  VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
+  if [ $? -eq 0 ]; then
+    echo $VERSION 1>&2
+
+    REFS=''
+    for DIR in `ls -1t $CONCOURSE_SHARE_BASE`; do
+      echo $DIR 1>&2
+
+      NEW_REF="{ \"ref\": \"$DIR\" },"
+      REFS=$NEW_REF$REFS # See the concat
+
+      if [ $DIR = $VERSION ]; then
+        break
+      fi
+    done
+
+    OUTPUT_STRING="[ $REFS ]"
+    echo $OUTPUT_STRING
+    exit 0
+  else
+    # If we are here then the python Failed. This probebly implies the
+    # version was no present, so we retuen the current version if any
+    echo "Falling back to return current version" 1>&2
+
+    VERSION=`s -1t | head -1`
+    OUTPUT_STRING="[]"
+    if [ $? -eq 0 ]; then
+      REFS="{ \"ref\": \"$VERSION\" }"
+      OUTPUT_STRING="[ $REFS ]"
+    fi
+    echo $OUTPUT_STRING
+    exit 0
+
+  fi
+
+else
+  echo "No /mnt/concourse_share directory found" 1>&2
+  exit 1
+fi
