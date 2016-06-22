@@ -15,6 +15,8 @@ if [ $PLATFORM = "Darwin" ]; then
   MD5_TOOL="md5"
 fi
 
+echo $MD5_TOOL 1>&2
+
 SCRIPT_INPUT_JSON=''
 while read LINE
 do
@@ -27,17 +29,26 @@ echo $SCRIPT_INPUT_JSON 1>&2
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
   VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
-  MD5_STRING=`cat $VERSION_STRING | $MD5_TOOL | rev | cut -d ' ' -f 1 | rev`
+
+  echo $VERSION_STRING 1>&2
+
+  MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
   if [ $? -eq 0 ]; then
     echo $MD5_STRING 1>&2
 
     # Create the new directory for this build
     DEST_DIR=$CONCOURSE_SHARE_BASE/$MD5_STRING
+    echo $DEST_DIR 1>&2
+
     mkdir -p $DEST_DIR
+
     if [ $? -eq 0 ]; then
-      rsync -av $SRC_DIR $DEST_DIR 1>&2
+      RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
+      echo $RSYNC_CMD 1>&2
+
+      eval $RSYNC_CMD
       if [ $? -eq 0 ]; then
-          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"},}"
+          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
           echo $OUTPUT_STRING
           exit 0
       else
