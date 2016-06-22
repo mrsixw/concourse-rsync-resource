@@ -14,32 +14,41 @@ cat > $PAYLOAD <&0
 SCRIPT_INPUT_JSON=`cat $PAYLOAD`
 echo $SCRIPT_INPUT_JSON 1>&2
 
+MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
+echo $MOUNTPOINT 1>&2
+
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
+  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
   if [ $? -eq 0 ]; then
-    echo $VERSION 1>&2
 
-    SRC_DIR=$CONCOURSE_SHARE_BASE/$VERSION
-    echo $SRC_DIR 2>&1
+    VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
+    if [ $? -eq 0 ]; then
+      echo $VERSION 1>&2
 
-    if [ -d $SRC_DIR ]; then
-      RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
-      echo $RSYNC_CMD 1>&2
-      eval $RSYNC_CMD
-      if [ $? -eq 0 ]; then
-          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
-          echo $OUTPUT_STRING
-          exit 0
+      SRC_DIR=$CONCOURSE_SHARE_BASE/$VERSION
+      echo $SRC_DIR 2>&1
+
+      if [ -d $SRC_DIR ]; then
+        RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
+        echo $RSYNC_CMD 1>&2
+        eval $RSYNC_CMD
+        if [ $? -eq 0 ]; then
+            OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
+            echo $OUTPUT_STRING
+            exit 0
+        else
+          echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
+          exit 1
+        fi
       else
-        echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
+        echo "Version $VERSION no longer available in $CONCOURSE_SHARE_BASE" 1>&2
         exit 1
       fi
     else
-      echo "Version $VERSION no longer available in $CONCOURSE_SHARE_BASE" 1>&2
+      echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
       exit 1
     fi
-
   else
     echo "Cannot determine verson to fetch!" 1>&2
     exit 1

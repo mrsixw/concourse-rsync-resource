@@ -7,41 +7,51 @@ cat > $PAYLOAD <&0
 SCRIPT_INPUT_JSON=`cat $PAYLOAD`
 echo $SCRIPT_INPUT_JSON 1>&2
 
+MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
+echo $MOUNTPOINT 1>&2
+
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
+  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
   if [ $? -eq 0 ]; then
-    echo $VERSION 1>&2
 
-    REFS=''
-    for DIR in `ls -1t $CONCOURSE_SHARE_BASE`; do
-      echo $DIR 1>&2
-
-      NEW_REF="{ \"ref\": \"$DIR\" },"
-      REFS=$NEW_REF$REFS # See the concat
-
-      if [ $DIR = $VERSION ]; then
-        break
-      fi
-    done
-
-    OUTPUT_STRING="[ $REFS ]"
-    echo $OUTPUT_STRING
-    exit 0
-  else
-    # If we are here then the python Failed. This probebly implies the
-    # version was no present, so we retuen the current version if any
-    echo "Falling back to return current version" 1>&2
-
-    VERSION=`s -1t | head -1`
-    OUTPUT_STRING="[]"
+    VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
     if [ $? -eq 0 ]; then
-      REFS="{ \"ref\": \"$VERSION\" }"
-      OUTPUT_STRING="[ $REFS ]"
-    fi
-    echo $OUTPUT_STRING
-    exit 0
+      echo $VERSION 1>&2
 
+      REFS=''
+      for DIR in `ls -1t $CONCOURSE_SHARE_BASE`; do
+        echo $DIR 1>&2
+
+        NEW_REF="{ \"ref\": \"$DIR\" },"
+        REFS=$NEW_REF$REFS # See the concat
+
+        if [ $DIR = $VERSION ]; then
+          break
+        fi
+      done
+
+      OUTPUT_STRING="[ $REFS ]"
+      echo $OUTPUT_STRING
+      exit 0
+    else
+      # If we are here then the python Failed. This probebly implies the
+      # version was no present, so we retuen the current version if any
+      echo "Falling back to return current version" 1>&2
+
+      VERSION=`s -1t | head -1`
+      OUTPUT_STRING="[]"
+      if [ $? -eq 0 ]; then
+        REFS="{ \"ref\": \"$VERSION\" }"
+        OUTPUT_STRING="[ $REFS ]"
+      fi
+      echo $OUTPUT_STRING
+      exit 0
+
+    fi
+  else
+    echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
+    exit 1
   fi
 
 else

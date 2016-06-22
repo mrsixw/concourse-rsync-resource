@@ -22,40 +22,49 @@ cat > $PAYLOAD <&0
 SCRIPT_INPUT_JSON=`cat $PAYLOAD`
 echo $SCRIPT_INPUT_JSON 1>&2
 
+MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
+echo $MOUNTPOINT 1>&2
+
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
-
-  echo $VERSION_STRING 1>&2
-
-  MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
+  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
   if [ $? -eq 0 ]; then
-    echo $MD5_STRING 1>&2
 
-    # Create the new directory for this build
-    DEST_DIR=$CONCOURSE_SHARE_BASE/$MD5_STRING
-    echo $DEST_DIR 1>&2
+    VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
 
-    mkdir -p $DEST_DIR
+    echo $VERSION_STRING 1>&2
 
+    MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
     if [ $? -eq 0 ]; then
-      RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
-      echo $RSYNC_CMD 1>&2
+      echo $MD5_STRING 1>&2
 
-      eval $RSYNC_CMD
+      # Create the new directory for this build
+      DEST_DIR=$CONCOURSE_SHARE_BASE/$MD5_STRING
+      echo $DEST_DIR 1>&2
+
+      mkdir -p $DEST_DIR
+
       if [ $? -eq 0 ]; then
-          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
-          echo $OUTPUT_STRING
-          exit 0
+        RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
+        echo $RSYNC_CMD 1>&2
+
+        eval $RSYNC_CMD
+        if [ $? -eq 0 ]; then
+            OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
+            echo $OUTPUT_STRING
+            exit 0
+        else
+          echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
+          exit 1
+        fi
       else
-        echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
+        echo "Failed to create destination $DEST_DIR" 1>&2
         exit 1
       fi
     else
-      echo "Failed to create destination $DEST_DIR" 1>&2
+      echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
       exit 1
     fi
-
   else
     echo "Failed to create MD5 hash"
     exit 1
