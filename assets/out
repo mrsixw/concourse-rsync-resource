@@ -9,6 +9,12 @@ echo $BUILD_JOB_NAME 1>&2
 echo $BUILD_PIPELINE_NAME 1>&2
 echo $ATC_EXTERNAL_URL 1>&2
 
+PLATFORM=`uname`
+MD5_TOOL="md5sum"
+if [ $PLATFORM = "Darwin" ]; then
+  MD5_TOOL="md5"
+fi
+
 SCRIPT_INPUT_JSON=''
 while read LINE
 do
@@ -21,7 +27,7 @@ echo $SCRIPT_INPUT_JSON 1>&2
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
   VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
-  MD5_STRING=`md5 -s $VERSION_STRING | rev | cut -d ' ' -f 1 | rev`
+  MD5_STRING=`cat $VERSION_STRING | $MD5_TOOL | rev | cut -d ' ' -f 1 | rev`
   if [ $? -eq 0 ]; then
     echo $MD5_STRING 1>&2
 

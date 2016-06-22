@@ -6,7 +6,7 @@
 - name: rsync-resource
   type: docker-image
   source:
-      repository: mrsixw/concourse-rsync-resource/
+      repository: mrsixw/concourse-rsync-resource
       tag: latest
 
 resources:
