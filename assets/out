@@ -17,14 +17,10 @@ fi
 
 echo $MD5_TOOL 1>&2
 
-SCRIPT_INPUT_JSON=''
-while read LINE
-do
-  SCRIPT_INPUT_JSON=$SCRIPT_INPUT_JSON$LINE
-done
-
+PAYLOAD='/tmp/payload'
+cat > $PAYLOAD <&0
+SCRIPT_INPUT_JSON=`cat $PAYLOAD`
 echo $SCRIPT_INPUT_JSON 1>&2
-
 
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
