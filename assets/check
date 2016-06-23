@@ -1,60 +1,43 @@
 #!/usr/bin/env bash
 
-CONCOURSE_SHARE_BASE='/mnt/concourse_share'
+exec 3>&1 # stdout on fd3
+exec 1>&2 # all other ouput to stderr
 
-PAYLOAD='/tmp/payload'
-cat > $PAYLOAD <&0
-SCRIPT_INPUT_JSON=`cat $PAYLOAD`
-echo $SCRIPT_INPUT_JSON 1>&2
+SCRIPT_INPUT='/tmp/input'
+cat > $SCRIPT_INPUT <&0 # STDIN params
 
-MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
-echo $MOUNTPOINT 1>&2
+SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
+USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
+VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
 
-if [ -e $CONCOURSE_SHARE_BASE ]; then
+echo $SERVER
+echo $BASE_DIR
+echo $USER
 
-  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
-  if [ $? -eq 0 ]; then
+mkdir ~/.ssh
+chmod 600 ~/.ssh
+(jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
+echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+chmod 600 ~/.ssh/*
 
-    VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
-    if [ $? -eq 0 ]; then
-      echo $VERSION 1>&2
+eval $(ssh-agent) >/dev/null
+SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key >/dev/null
 
-      REFS=''
-      for DIR in `ls -1t $CONCOURSE_SHARE_BASE`; do
-        echo $DIR 1>&2
+echo $VERSION
 
-        NEW_REF="{ \"ref\": \"$DIR\" },"
-        REFS=$NEW_REF$REFS # See the concat
+REFS=''
+for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
+  echo $DIR 1>&2
 
-        if [ $DIR = $VERSION ]; then
-          break
-        fi
-      done
+  NEW_REF="{ \"ref\": \"$DIR\" },"
+  REFS=$NEW_REF$REFS # See the concat
 
-      OUTPUT_STRING="[ $REFS ]"
-      echo $OUTPUT_STRING
-      exit 0
-    else
-      # If we are here then the python Failed. This probebly implies the
-      # version was no present, so we retuen the current version if any
-      echo "Falling back to return current version" 1>&2
-
-      VERSION=`s -1t | head -1`
-      OUTPUT_STRING="[]"
-      if [ $? -eq 0 ]; then
-        REFS="{ \"ref\": \"$VERSION\" }"
-        OUTPUT_STRING="[ $REFS ]"
-      fi
-      echo $OUTPUT_STRING
-      exit 0
-
-    fi
-  else
-    echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
-    exit 1
+  if [ $DIR = $VERSION ]; then
+    break
   fi
+done
 
-else
-  echo "No /mnt/concourse_share directory found" 1>&2
-  exit 1
-fi
+OUTPUT_STRING="[ $REFS ]"
+echo $OUTPUT_STRING >&3
+exit 0
