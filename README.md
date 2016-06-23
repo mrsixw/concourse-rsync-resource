@@ -6,8 +6,11 @@
 * `base_dir`: *Required* Base directory in which to place the artifacts
 * `user`: *Required* User credential for login using ssh
 * `private_key`: *Required* Key for the specified user
-All config required for each of the `in`, `out` and `check` behaviors. 
+
+All config required for each of the `in`, `out` and `check` behaviors.
+
 ###Example
+
 ```
 resource_types:
 - name: rsync-resource
