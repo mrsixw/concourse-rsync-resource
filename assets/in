@@ -1,56 +1,65 @@
 #!/usr/bin/env bash
 
+exec 3>&1 # stdout on fd3
+exec 1>&2 # all other ouput to stderr
+
+
 DEST_DIR=$1
-CONCOURSE_SHARE_BASE='/mnt/concourse_share'
-echo $DEST_DIR
+echo $SRC_DIR
 echo $BUILD_ID
 echo $BUILD_NAME
 echo $BUILD_JOB_NAME
 echo $BUILD_PIPELINE_NAME
 echo $ATC_EXTERNAL_URL
 
-PAYLOAD='/tmp/payload'
-cat > $PAYLOAD <&0
-SCRIPT_INPUT_JSON=`cat $PAYLOAD`
-echo $SCRIPT_INPUT_JSON 1>&2
+PLATFORM=`uname`
+MD5_TOOL="md5sum"
+if [ $PLATFORM = "Darwin" ]; then
+  MD5_TOOL="md5"
+fi
 
-MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
-echo $MOUNTPOINT 1>&2
+echo $MD5_TOOL
+
+SCRIPT_INPUT='/tmp/input'
+cat > $SCRIPT_INPUT <&0 # STDIN params
+
+SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
+USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
+VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
+
+echo $SERVER
+echo $BASE_DIR
+echo $USER
+
+mkdir ~/.ssh
+chmod 600 ~/.ssh
+(jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
+echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+chmod 600 ~/.ssh/*
+
+eval $(ssh-agent) >/dev/null
+SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key >/dev/null
 
 if [ -e $CONCOURSE_SHARE_BASE ]; then
+  SRC_DIR=$CONCOURSE_SHARE_BASE/$VERSION
+  echo $SRC_DIR
 
-  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
-  if [ $? -eq 0 ]; then
-
-    VERSION=`python -c "d = ${SCRIPT_INPUT_JSON}; print d['version']['ref']"`
+  if [ -d $SRC_DIR ]; then
+    RSYNC_CMD="rsync -Pav e 'ssh -i ~/.ssh/server_key' $USER@$SERVER:$SRC_DIR $DEST_DIR"
+    echo $RSYNC_CMD
+    eval $RSYNC_CMD
     if [ $? -eq 0 ]; then
-      echo $VERSION 1>&2
-
-      SRC_DIR=$CONCOURSE_SHARE_BASE/$VERSION
-      echo $SRC_DIR 2>&1
-
-      if [ -d $SRC_DIR ]; then
-        RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
-        echo $RSYNC_CMD 1>&2
-        eval $RSYNC_CMD
-        if [ $? -eq 0 ]; then
-            OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
-            echo $OUTPUT_STRING
-            exit 0
-        else
-          echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
-          exit 1
-        fi
-      else
-        echo "Version $VERSION no longer available in $CONCOURSE_SHARE_BASE" 1>&2
-        exit 1
-      fi
+        OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
+        echo $OUTPUT_STRING
+        echo $OUTPUT_STRING >&3
+        exit 0
     else
-      echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
+      echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
       exit 1
     fi
   else
-    echo "Cannot determine verson to fetch!" 1>&2
+    echo "Version $VERSION no longer available in $CONCOURSE_SHARE_BASE" 1>&2
     exit 1
   fi
 else
