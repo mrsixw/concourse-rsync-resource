@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-exec 3>&1 # stdout on fd3
-exec 1>&2 # all other ouput to stderr
 
 SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
@@ -11,9 +9,9 @@ BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
 
-echo $SERVER
-echo $BASE_DIR
-echo $USER
+echo $SERVER  1>&2
+echo $BASE_DIR  1>&2
+echo $USER  1>&2
 
 mkdir ~/.ssh
 chmod 600 ~/.ssh
@@ -21,10 +19,10 @@ chmod 600 ~/.ssh
 echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 chmod 600 ~/.ssh/*
 
-eval $(ssh-agent) >/dev/null
-SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key >/dev/null
+eval $(ssh-agent)  1>&2  >/dev/null
+SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
 
-echo $VERSION
+echo $VERSION  1>&2
 
 REFS=''
 for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
@@ -39,5 +37,5 @@ for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
 done
 
 OUTPUT_STRING="[ $REFS ]"
-echo $OUTPUT_STRING >&3
+echo $OUTPUT_STRING
 exit 0
