@@ -2,7 +2,7 @@ FROM alpine:edge
 MAINTAINER Steve Williams <mrsixw@gmail.com>
 
 RUN apk update && apk upgrade && \
-    apk add --update  curl wget bash tree python rsync jq
+    apk add --update  curl wget bash tree python rsync jq nfs-utils openssh
 
 COPY ./assets/check /opt/resource/check
 COPY ./assets/in /opt/resource/in
