@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 
+exec 3>&1 # stdout on fd3
+exec 1>&2 # all other ouput to stderr
+
+
 SRC_DIR=$1
-CONCOURSE_SHARE_BASE='/mnt/concourse_share'
-echo $SRC_DIR 1>&2
-echo $BUILD_ID 1>&2
-echo $BUILD_NAME 1>&2
-echo $BUILD_JOB_NAME 1>&2
-echo $BUILD_PIPELINE_NAME 1>&2
-echo $ATC_EXTERNAL_URL 1>&2
+echo $SRC_DIR
+echo $BUILD_ID
+echo $BUILD_NAME
+echo $BUILD_JOB_NAME
+echo $BUILD_PIPELINE_NAME
+echo $ATC_EXTERNAL_URL
 
 PLATFORM=`uname`
 MD5_TOOL="md5sum"
@@ -15,54 +18,61 @@ if [ $PLATFORM = "Darwin" ]; then
   MD5_TOOL="md5"
 fi
 
-echo $MD5_TOOL 1>&2
+echo $MD5_TOOL
 
-PAYLOAD='/tmp/payload'
-cat > $PAYLOAD <&0
-SCRIPT_INPUT_JSON=`cat $PAYLOAD`
-echo $SCRIPT_INPUT_JSON 1>&2
+SCRIPT_INPUT='/tmp/input'
+cat > $SCRIPT_INPUT <&0 # STDIN params
 
-MOUNTPOINT=$(jq -r '.source.mountpoint // ""' < $PAYLOAD)
-echo $MOUNTPOINT 1>&2
+SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
+USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
+
+echo $SERVER
+echo $BASE_DIR
+echo $USER
+
+mkdir ~/.ssh
+chmod 600 ~/.ssh
+(jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
+echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+chmod 600 ~/.ssh/*
+
+eval $(ssh-agent) >/dev/null
+SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key >/dev/null
 
 if [ -e $CONCOURSE_SHARE_BASE ]; then
 
-  mount -o resvport  $MOUNTPOINT $CONCOURSE_SHARE_BASE
+  VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
+
+  echo $VERSION_STRING
+
+  MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
   if [ $? -eq 0 ]; then
+    echo $MD5_STRING
 
-    VERSION_STRING="$BUILD_PIPELINE_NAME-$BUILD_ID"
+    # Create the new directory for this build
+    DEST_DIR=$BASE_DIR/$MD5_STRING
+    echo $DEST_DIR
 
-    echo $VERSION_STRING 1>&2
+    CMD="ssh -i ~/.ssh/server_key $USER@$SERVER mkdir -p $DEST_DIR"
+    echo $CMD
+    eval $CMD
 
-    MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
     if [ $? -eq 0 ]; then
-      echo $MD5_STRING 1>&2
+      RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key'  $SRC_DIR $USER@$SERVER:$DEST_DIR"
+      echo $RSYNC_CMD
 
-      # Create the new directory for this build
-      DEST_DIR=$CONCOURSE_SHARE_BASE/$MD5_STRING
-      echo $DEST_DIR 1>&2
-
-      mkdir -p $DEST_DIR
-
+      eval $RSYNC_CMD
       if [ $? -eq 0 ]; then
-        RSYNC_CMD="rsync -av $SRC_DIR $DEST_DIR 1>&2"
-        echo $RSYNC_CMD 1>&2
-
-        eval $RSYNC_CMD
-        if [ $? -eq 0 ]; then
-            OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
-            echo $OUTPUT_STRING
-            exit 0
-        else
-          echo "Failed to rsync $SRC_DIR to $DEST_DIR" 1>&2
-          exit 1
-        fi
+          OUTPUT_STRING="{ \"version\": { \"ref\": \"$MD5_STRING\"} }"
+          echo $OUTPUT_STRING >&3
+          exit 0
       else
-        echo "Failed to create destination $DEST_DIR" 1>&2
+        echo "Failed to rsync $SRC_DIR to $DEST_DIR"
         exit 1
       fi
     else
-      echo "Fail to mount $MOUNTPOINT on $CONCOURSE_SHARE_BASE"
+      echo "Failed to create destination $DEST_DIR"
       exit 1
     fi
   else
@@ -71,6 +81,6 @@ if [ -e $CONCOURSE_SHARE_BASE ]; then
   fi
 
 else
-  echo "No /mnt/concourse_share directory found" 1>&2
+  echo "No /mnt/concourse_share directory found"
   exit 1
 fi
