@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SRC_DIR=$1/put
+SRC_DIR=$1
 echo $SRC_DIR 1>&2
 echo $BUILD_ID 1>&2
 echo $BUILD_NAME 1>&2
@@ -24,9 +24,11 @@ BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 SYNC_DIR=$(jq -r '.params.sync_dir // ""' < $SCRIPT_INPUT)
 
+echo $SCRIPT_INPUT 1>&2
 echo $SERVER 1>&2
 echo $BASE_DIR 1>&2
 echo $USER 1>&2
+echo $SYNC_DIR 1>&2
 
 mkdir ~/.ssh
 chmod 600 ~/.ssh

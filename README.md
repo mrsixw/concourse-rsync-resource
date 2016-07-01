@@ -11,7 +11,7 @@ All config required for each of the `in`, `out` and `check` behaviors.
 
 ###Example
 
-```
+``` yaml
 resource_types:
 - name: rsync-resource
   type: docker-image
@@ -28,6 +28,13 @@ resources:
     user : user
     private_key: |
             ...
+
+jobs:
+-name: my_great_job
+  plan:
+    ...
+    put: sync-resource
+      params: {"sync_dir" : "my_output_dir" }
 ```
 
 ##Behavior
@@ -35,9 +42,12 @@ resources:
 The `base_dir` is searched for any new artifacts being stored
 
 ### `in` : retrieve a given artifacts from `server`
-Given a `version` check for its existance and rsync back the artifacts for the
+Given a `version` check for its existence and rsync back the artifacts for the
 version.
 
 ### `out` : place a new artifact on `server`
 Generate a new `version` number an associated directory in `base_dir` on `server`
-using the specified user credential. Rsync across artifacts from the input directory to the server storgage location and output the `version`
+using the specified user credential. Rsync across artifacts from the input directory to the server storage location and output the `version`
+#### Parameters
+
+* `sync_dir`: *Optional.* Directory to be sync'd. If specified limit the directory to be sync'd to sync_dir. If not specified everything in the `put` will be sent (which could include container resources, whole build trees etc.)
