@@ -31,7 +31,7 @@ for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
   NEW_REF="{ \"ref\": \"$DIR\" },"
   REFS=$NEW_REF$REFS # See the concat
 
-  if [ $DIR = $VERSION ]; then
+  if [ "$DIR" = "$VERSION" ]; then
     break
   fi
 done
