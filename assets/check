@@ -27,8 +27,13 @@ echo $VERSION  1>&2
 REFS=''
 for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
   echo $DIR 1>&2
+  echo ${#REFS} 1>&2
 
-  NEW_REF="{ \"ref\": \"$DIR\" },"
+  NEW_REF="{ \"ref\": \"$DIR\" }"
+  if [ "${#REFS}" != "0" ]; then
+    NEW_REF="{ \"ref\": \"$DIR\" },"
+  fi
+
   REFS=$NEW_REF$REFS # See the concat
 
   if [ "$DIR" = "$VERSION" ]; then
