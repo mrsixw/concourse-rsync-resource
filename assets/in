@@ -41,7 +41,7 @@ SRC_DIR=$BASE_DIR/$VERSION
 echo $SRC_DIR 1>&2
 
 if (ssh -t -i ~/.ssh/server_key $USER@$SERVER '[ -d $SRC_DIR ]' ); then
-  RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key' $USER@$SERVER:$SRC_DIR $DEST_DIR"
+  RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key' $USER@$SERVER:$SRC_DIR/* $DEST_DIR"
   echo $RSYNC_CMD  1>&2
   eval $RSYNC_CMD  1>&2
   if [ $? -eq 0 ]; then
