@@ -55,7 +55,7 @@ if [ $? -eq 0 ]; then
   eval $CMD 1>&2
 
   if [ $? -eq 0 ]; then
-    RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key'  $SRC_DIR/$SYNC_DIR $USER@$SERVER:$DEST_DIR"
+    RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key'  $SRC_DIR/$SYNC_DIR/* $USER@$SERVER:$DEST_DIR"
     echo $RSYNC_CMD 1>&2
 
     eval $RSYNC_CMD  1>&2
