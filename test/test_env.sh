@@ -7,7 +7,4 @@ export BUILD_JOB_NAME='my-build-job'
 export BUILD_PIPELINE_NAME='my-build-pipeline'
 export ATC_EXTERNAL_URL='127.0.0.1/atc'
 
-
-echo "Hi there!"
-
 cat /opt/start/test.json | /opt/resource/check
