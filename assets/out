@@ -20,12 +20,20 @@ SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
 
 SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
 BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 SYNC_DIR=$(jq -r '.params.sync_dir // ""' < $SCRIPT_INPUT)
 
+## check if port is set in the configuration and
+## use default SSH port number 22 otherwise
+if [ -z "$PORT" ]; then
+    PORT=22
+fi
+
 echo $SCRIPT_INPUT 1>&2
 echo $SERVER 1>&2
+echo $PORT 1>&2
 echo $BASE_DIR 1>&2
 echo $USER 1>&2
 echo $SYNC_DIR 1>&2
@@ -50,12 +58,12 @@ if [ $? -eq 0 ]; then
   DEST_DIR=$BASE_DIR/$MD5_STRING
   echo $DEST_DIR 1>&2
 
-  CMD="ssh -i ~/.ssh/server_key $USER@$SERVER mkdir -p $DEST_DIR"
+  CMD="ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER mkdir -p $DEST_DIR"
   echo $CMD 1>&2
   eval $CMD 1>&2
 
   if [ $? -eq 0 ]; then
-    RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key'  $SRC_DIR/$SYNC_DIR/* $USER@$SERVER:$DEST_DIR"
+    RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key -p $PORT'  $SRC_DIR/$SYNC_DIR/* $USER@$SERVER:$DEST_DIR"
     echo $RSYNC_CMD 1>&2
 
     eval $RSYNC_CMD  1>&2

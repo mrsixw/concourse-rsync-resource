@@ -20,11 +20,19 @@ SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
 
 SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
 BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
 
+## check if port is set in the configuration and
+## use default SSH port number 22 otherwise
+if [ -z "$PORT" ]; then
+    PORT=22
+fi
+
 echo $SERVER 1>&2
+echo $PORT 1>&2
 echo $BASE_DIR 1>&2
 echo $USER 1>&2
 
@@ -40,8 +48,8 @@ SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key 1>&2 >/d
 SRC_DIR=$BASE_DIR/$VERSION
 echo $SRC_DIR 1>&2
 
-if (ssh -t -i ~/.ssh/server_key $USER@$SERVER '[ -d $SRC_DIR ]' ); then
-  RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key' $USER@$SERVER:$SRC_DIR/* $DEST_DIR"
+if (ssh -t -i ~/.ssh/server_key -p $PORT $USER@$SERVER '[ -d $SRC_DIR ]' ); then
+  RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key -p $PORT' $USER@$SERVER:$SRC_DIR/* $DEST_DIR"
   echo $RSYNC_CMD  1>&2
   eval $RSYNC_CMD  1>&2
   if [ $? -eq 0 ]; then
