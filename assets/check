@@ -5,13 +5,21 @@ SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
 
 SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
 BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
 
-echo $SERVER  1>&2
+## check if port is set in the configuration and
+## use default SSH port number 22 otherwise
+if [ -z "$PORT" ]; then
+    PORT=22
+fi
+
+echo $SERVER    1>&2
+echo $PORT      1>&2
 echo $BASE_DIR  1>&2
-echo $USER  1>&2
+echo $USER      1>&2
 
 mkdir ~/.ssh
 chmod 600 ~/.ssh
@@ -25,7 +33,7 @@ SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >
 echo $VERSION  1>&2
 
 REFS=''
-for DIR in `ssh -i ~/.ssh/server_key $USER@$SERVER ls -1t $BASE_DIR`; do
+for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
   echo $DIR 1>&2
   echo ${#REFS} 1>&2
 
