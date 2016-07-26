@@ -32,11 +32,11 @@ if [ -z "$PORT" ]; then
 fi
 
 echo $SCRIPT_INPUT 1>&2
-echo $SERVER 1>&2
-echo $PORT 1>&2
-echo $BASE_DIR 1>&2
-echo $USER 1>&2
-echo $SYNC_DIR 1>&2
+echo $SERVER       1>&2
+echo $PORT         1>&2
+echo $BASE_DIR     1>&2
+echo $USER         1>&2
+echo $SYNC_DIR     1>&2
 
 mkdir ~/.ssh
 chmod 600 ~/.ssh
