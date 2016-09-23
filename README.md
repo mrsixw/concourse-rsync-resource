@@ -29,12 +29,29 @@ resources:
     private_key: |
             ...
 
+- name: sync-resource-multiple
+  type: rsync-resource
+  source:
+    servers:
+      - server1
+      - server2
+    base_dir: /sync_directory
+    user : user
+    disable_md5_path: false
+    private_key: |
+            ...
+
 jobs:
 -name: my_great_job
   plan:
     ...
     put: sync-resource
       params: {"sync_dir" : "my_output_dir" }
+    put: sync-resource
+      params: {
+          "sync_dir" : "my_output_dir",
+          "rsync_opts": ["-Pav", "--del", "--chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r"]
+      }
 ```
 
 ##Behavior
