@@ -18,6 +18,7 @@ if [ -z "$PORT" ]; then
     PORT=22
 fi
 
+echo $SCRIPT_INPUT 1>&2
 echo $SERVER    1>&2
 echo $PORT      1>&2
 echo $BASE_DIR  1>&2
