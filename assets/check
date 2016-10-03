@@ -23,6 +23,7 @@ echo $SERVER    1>&2
 echo $PORT      1>&2
 echo $BASE_DIR  1>&2
 echo $USER      1>&2
+echo $VERSION  1>&2
 
 mkdir -vp ~/.ssh
 chmod 600 ~/.ssh
@@ -32,8 +33,6 @@ chmod 600 ~/.ssh/*
 
 eval $(ssh-agent)  1>&2  >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
-
-echo $VERSION  1>&2
 
 REFS=''
 if [ $DISABLE_MD5_PATH -eq 0 ]
