@@ -25,8 +25,8 @@ BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 SYNC_DIR=$(jq -r '.params.sync_dir // ""' < $SCRIPT_INPUT)
 RSYNC_OPTS_ARR=$(jq -r '.params.rsync_opts // ""' < $SCRIPT_INPUT)
-jq -re '.source.disable_md5_path' < $SCRIPT_INPUT >/dev/null
-DISABLE_MD5_PATH=$?
+jq -re '.source.disable_version_path' < $SCRIPT_INPUT >/dev/null
+DISABLE_VERSION_PATH=$?
 
 if [ -z "$RSYNC_OPTS_ARR" ]
 then
@@ -47,7 +47,7 @@ echo $PORT         1>&2
 echo $BASE_DIR     1>&2
 echo $USER         1>&2
 echo $SYNC_DIR     1>&2
-echo "DISABLE_MD5_PATH=$DISABLE_MD5_PATH" 1>&2
+echo "DISABLE_VERSION_PATH=$DISABLE_VERSION_PATH" 1>&2
 
 mkdir ~/.ssh
 chmod 600 ~/.ssh
@@ -69,7 +69,7 @@ MD5_STRING=`echo $VERSION_STRING | $MD5_TOOL | cut -d ' ' -f 1 `
 if [ $? -eq 0 ]; then
   echo $MD5_STRING 1>&2
   
-  if [ $DISABLE_MD5_PATH -eq 0 ]
+  if [ $DISABLE_VERSION_PATH -eq 0 ]
   then
       MD5_PATH=""
   else
