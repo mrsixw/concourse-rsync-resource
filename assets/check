@@ -4,11 +4,13 @@
 SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
 
-SERVER=$(jq -r '.source.server // ""' < $SCRIPT_INPUT)
+SERVER=$(jq -r '(.source.servers + [.source.server])[0]' < $SCRIPT_INPUT)
 PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
 BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
+jq -re '.source.disable_version_path' < $SCRIPT_INPUT >/dev/null
+DISABLE_VERSION_PATH=$?
 
 ## check if port is set in the configuration and
 ## use default SSH port number 22 otherwise
@@ -23,7 +25,7 @@ echo $BASE_DIR  1>&2
 echo $USER      1>&2
 echo $VERSION  1>&2
 
-mkdir ~/.ssh
+mkdir -vp ~/.ssh
 chmod 600 ~/.ssh
 (jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
 echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
@@ -33,21 +35,31 @@ eval $(ssh-agent)  1>&2  >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
 
 REFS=''
-for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
-  echo $DIR 1>&2
-  echo ${#REFS} 1>&2
+if [ $DISABLE_VERSION_PATH -eq 0 ]
+then
+    if ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER test -d $BASE_DIR
+    then
+        DIR=${BASE_DIR##*/}
+        echo $DIR 1>&2
+        REFS="{ \"ref\": \"$DIR\" }"
+    fi
+else
+    for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
+      echo $DIR 1>&2
+      echo ${#REFS} 1>&2
 
-  NEW_REF="{ \"ref\": \"$DIR\" }"
-  if [ "${#REFS}" != "0" ]; then
-    NEW_REF="{ \"ref\": \"$DIR\" },"
-  fi
+      NEW_REF="{ \"ref\": \"$DIR\" }"
+      if [ "${#REFS}" != "0" ]; then
+        NEW_REF="{ \"ref\": \"$DIR\" },"
+      fi
 
-  REFS=$NEW_REF$REFS # See the concat
+      REFS=$NEW_REF$REFS # See the concat
 
-  if [ "$DIR" = "$VERSION" ]; then
-    break
-  fi
-done
+      if [ "$DIR" = "$VERSION" ]; then
+        break
+      fi
+    done
+fi
 
 OUTPUT_STRING="[ $REFS ]"
 echo $OUTPUT_STRING
