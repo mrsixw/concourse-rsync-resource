@@ -9,8 +9,8 @@ PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
 BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
-jq -re '.source.disable_md5_path' < $SCRIPT_INPUT >/dev/null
-DISABLE_MD5_PATH=$?
+jq -re '.source.disable_version_path' < $SCRIPT_INPUT >/dev/null
+DISABLE_VERSION_PATH=$?
 
 ## check if port is set in the configuration and
 ## use default SSH port number 22 otherwise
@@ -35,7 +35,7 @@ SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >
 echo $VERSION  1>&2
 
 REFS=''
-if [ $DISABLE_MD5_PATH -eq 0 ]
+if [ $DISABLE_VERSION_PATH -eq 0 ]
 then
     if ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER test -d $BASE_DIR
     then
