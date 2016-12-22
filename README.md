@@ -3,6 +3,7 @@
 
 ##Config
 * `server|servers`: *Required* Server or list of servers on which to persist artifacts. If `servers` are used first one in the list will be used for `in` and `check` origins.
+* `port`: *Optional* Server SSH port, default is port 22
 * `base_dir`: *Required* Base directory in which to place the artifacts
 * `user`: *Required* User credential for login using ssh
 * `private_key`: *Required* Key for the specified user
