@@ -49,15 +49,14 @@ echo $USER         1>&2
 echo $SYNC_DIR     1>&2
 echo "DISABLE_VERSION_PATH=$DISABLE_VERSION_PATH" 1>&2
 
-mkdir ~/.ssh
-chmod 600 ~/.ssh
+mkdir -p ~/.ssh
 (jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
 for SERVER in $SERVERS
 do
     echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
 done
 
-chmod 600 ~/.ssh/*
+chmod -R 600 ~/.ssh
 
 eval $(ssh-agent) 1>&2 2>/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key 1>&2 2>/dev/null
