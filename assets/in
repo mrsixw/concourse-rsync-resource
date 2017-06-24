@@ -40,11 +40,10 @@ echo $BASE_DIR  1>&2
 echo $USER      1>&2
 echo $VERSION   1>&2
 
-mkdir ~/.ssh
-chmod 600 ~/.ssh
+mkdir -p ~/.ssh
 (jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
 echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-chmod 600 ~/.ssh/*
+chmod -R 600 ~/.ssh
 
 eval $(ssh-agent) 1>&2 >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key 1>&2 >/dev/null
