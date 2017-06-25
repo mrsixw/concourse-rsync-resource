@@ -40,25 +40,31 @@ then
     then
         DIR=${BASE_DIR##*/}
         echo $DIR 1>&2
-        REFS="{ \"ref\": \"$DIR\" }"
+        REFS="{ \"ref\": \"$(ssh -i ~/.ssh/server_key \"find $BASE_DIR -type f -exec stat -c "%Y" {} \; | sort -n | tail -1\")\" }"
     fi
 else
+    echo "looking for topmost changed dir, ideally matching $VERSION" 1>&2
     for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
-      echo $DIR 1>&2
-      echo ${#REFS} 1>&2
+      echo "Dir: $DIR" 1>&2
+      echo "Refs: ${#REFS}" 1>&2
 
       NEW_REF="{ \"ref\": \"$DIR\" }"
       if [ "${#REFS}" != "0" ]; then
         NEW_REF="{ \"ref\": \"$DIR\" },"
       fi
 
+      echo "Refs: ${#REFS}" 1>&2
+
       REFS=$NEW_REF$REFS # See the concat
 
       if [ "$DIR" = "$VERSION" ]; then
+        echo "Refs: ${#REFS}" 1>&2
         break
       fi
     done
 fi
+
+echo "Determined refs to be: $REFS"  1>&2
 
 OUTPUT_STRING="[ $REFS ]"
 echo $OUTPUT_STRING
