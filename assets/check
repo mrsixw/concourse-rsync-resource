@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -e -x
 
 SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
@@ -33,39 +34,23 @@ chmod -R 600 ~/.ssh
 eval $(ssh-agent)  1>&2  >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
 
-REFS=''
-if [ $DISABLE_VERSION_PATH -eq 0 ]
+if [ "$DISABLE_VERSION_PATH" -eq "0" ]
 then
-    if ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER test -d $BASE_DIR
-    then
-        DIR=${BASE_DIR##*/}
-        echo $DIR 1>&2
-        REFS="{ \"ref\": \"$(ssh -i ~/.ssh/server_key \"find $BASE_DIR -type f -exec stat -c "%Y" {} \; | sort -n | tail -1\")\" }"
-    fi
+    # any version is already rolled in
+    SRC_DIR=$BASE_DIR
 else
-    echo "looking for topmost changed dir, ideally matching $VERSION" 1>&2
-    for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
-      echo "Dir: $DIR" 1>&2
-      echo "Refs: ${#REFS}" 1>&2
-
-      NEW_REF="{ \"ref\": \"$DIR\" }"
-      if [ "${#REFS}" != "0" ]; then
-        NEW_REF="{ \"ref\": \"$DIR\" },"
-      fi
-
-      echo "Refs: ${#REFS}" 1>&2
-
-      REFS=$NEW_REF$REFS # See the concat
-
-      if [ "$DIR" = "$VERSION" ]; then
-        echo "Refs: ${#REFS}" 1>&2
-        break
-      fi
-    done
+    SRC_DIR=$BASE_DIR/$VERSION
 fi
 
-echo "Determined refs to be: $REFS"  1>&2
+DIR=${SRC_DIR##*/}
+echo $DIR 1>&2
+REFS=$(ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER "find $SRC_DIR -type f -exec stat -c '%Y' {} \; | sort -n | tail -1")
+if [ "$?" -eq "0" ]
+then
+    REFS="[{ \"ref\": \"$REFS\" }]"
+    echo $REFS
+else
+    exit 1
+fi
 
-OUTPUT_STRING="[ $REFS ]"
-echo $OUTPUT_STRING
 exit 0

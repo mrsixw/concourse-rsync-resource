@@ -19,6 +19,7 @@ BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
 USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
 VERSION=$(jq -r '.version.ref // ""' < $SCRIPT_INPUT)
 jq -re '.source.disable_version_path' < $SCRIPT_INPUT >/dev/null
+# a little tricky: 0 is the status code that says that we found the entry.  It's inverted logic.
 DISABLE_VERSION_PATH=$?
 
 ## check if port is set in the configuration and
@@ -42,7 +43,7 @@ chmod -R 600 ~/.ssh
 eval $(ssh-agent) 1>&2 >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key 1>&2 >/dev/null
 
-if [ $DISABLE_VERSION_PATH -eq 0 ]
+if [ "$DISABLE_VERSION_PATH" -eq "0" ]
 then
     # any version is already rolled in
     SRC_DIR=$BASE_DIR
@@ -52,7 +53,7 @@ fi
 
 echo $SRC_DIR 1>&2
 
-if [ -z "$VERSION" && $DISABLE_VERSION_PATH -eq 1 ]; then
+if [[ -z "$VERSION" && "$DISABLE_VERSION_PATH" -eq "1" ]]; then
   echo "ERROR Version specification $VERSION invalid!" 1>&2
   exit 1
 else
