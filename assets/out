@@ -65,7 +65,13 @@ TIMESTAMP=$(find "$SRC_DIR/$SYNC_DIR" -type f -exec stat -c "%Y" {} \; | sort -n
 echo "DEBUG: Timestamp of latest modified file is $TIMESTAMP" 1>&2
 
 # Create the new directory for this build
-DEST_DIR=$BASE_DIR/$TIMESTAMP
+if [ $DISABLE_VERSION_PATH -eq 0 ]
+then
+    DEST_DIR=$BASE_DIR
+else
+    DEST_DIR=$BASE_DIR/$TIMESTAMP
+fi
+
 echo $DEST_DIR 1>&2
 
 REPORTED_VERSION=0
