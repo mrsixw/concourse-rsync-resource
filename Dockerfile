@@ -1,4 +1,4 @@
-FROM alpine:edge
+FROM alpine:latest
 MAINTAINER Steve Williams <mrsixw@gmail.com>
 
 RUN apk update && apk upgrade && \
