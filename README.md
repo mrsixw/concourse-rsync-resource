@@ -1,7 +1,7 @@
 # concourse-rsync-resource
 [concourse.ci](https://concourse.ci/ "concourse.ci Homepage") [resource](https://concourse.ci/implementing-resources.html "Implementing a resource") for persisting build artifacts on a shared storage location with rsync and ssh.
 
-##Config
+## Config
 * `server|servers`: *Required* Server or list of servers on which to persist artifacts. If `servers` are used first one in the list will be used for `in` and `check` origins.
 * `port`: *Optional* Server SSH port, default is port 22
 * `base_dir`: *Required* Base directory in which to place the artifacts
@@ -11,7 +11,7 @@
 
 All config required for each of the `in`, `out` and `check` behaviors.
 
-###Example
+### Example
 
 ``` yaml
 resource_types:
@@ -56,7 +56,7 @@ jobs:
       }
 ```
 
-##Behavior
+## Behavior
 ### `check` : Check for new versions of artifacts
 The `base_dir` is searched for any new artifacts being stored
 
