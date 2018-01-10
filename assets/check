@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -e -x
 
 SCRIPT_INPUT='/tmp/input'
 cat > $SCRIPT_INPUT <&0 # STDIN params
@@ -33,33 +34,23 @@ chmod -R 600 ~/.ssh
 eval $(ssh-agent)  1>&2  >/dev/null
 SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
 
-REFS=''
-if [ $DISABLE_VERSION_PATH -eq 0 ]
+if [ "$DISABLE_VERSION_PATH" -eq "0" ]
 then
-    if ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER test -d $BASE_DIR
-    then
-        DIR=${BASE_DIR##*/}
-        echo $DIR 1>&2
-        REFS="{ \"ref\": \"$DIR\" }"
-    fi
+    # any version is already rolled in
+    SRC_DIR=$BASE_DIR
 else
-    for DIR in `ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER ls -1t $BASE_DIR`; do
-      echo $DIR 1>&2
-      echo ${#REFS} 1>&2
-
-      NEW_REF="{ \"ref\": \"$DIR\" }"
-      if [ "${#REFS}" != "0" ]; then
-        NEW_REF="{ \"ref\": \"$DIR\" },"
-      fi
-
-      REFS=$NEW_REF$REFS # See the concat
-
-      if [ "$DIR" = "$VERSION" ]; then
-        break
-      fi
-    done
+    SRC_DIR=$BASE_DIR/$VERSION
 fi
 
-OUTPUT_STRING="[ $REFS ]"
-echo $OUTPUT_STRING
+DIR=${SRC_DIR##*/}
+echo $DIR 1>&2
+REFS=$(ssh -i ~/.ssh/server_key -p $PORT $USER@$SERVER "find $SRC_DIR -type f -exec stat -c '%Y' {} \; | sort -n | tail -1")
+if [ "$?" -eq "0" ]
+then
+    REFS="[{ \"ref\": \"$REFS\" }]"
+    echo $REFS
+else
+    exit 1
+fi
+
 exit 0
