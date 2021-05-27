@@ -27,11 +27,16 @@ echo $VERSION  1>&2
 
 mkdir -p ~/.ssh
 (jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
+PRIVATE_KEY_PASSPHRASE="$(jq -r '.source.private_key_passphrase // empty' < $SCRIPT_INPUT)"
 echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 chmod -R 600 ~/.ssh
 
 eval $(ssh-agent)  1>&2  >/dev/null
-SSH_ASKPASS=/opt/resource/askpass.sh DISPLAY= ssh-add ~/.ssh/server_key  1>&2  >/dev/null
+SSH_ASKPASS_REQUIRE=force \
+  SSH_ASKPASS=/opt/resource/askpass.sh \
+  SSH_PRIVATE_KEY_PASS="$PRIVATE_KEY_PASSPHRASE" \
+  DISPLAY= \
+  ssh-add ~/.ssh/server_key 1>&2 2>/dev/null
 
 REFS=''
 if [ $DISABLE_VERSION_PATH -eq 0 ]
