@@ -16,16 +16,15 @@ fi
 
 echo $MD5_TOOL 1>&2
 
-SCRIPT_INPUT='/tmp/input'
-cat > $SCRIPT_INPUT <&0 # STDIN params
+SCRIPT_INPUT="$(cat <&0)"
 
-SERVERS=$(jq -r '.source.servers + [.source.server]|join(" ")'< $SCRIPT_INPUT)
-PORT=$(jq -r '.source.port // ""' < $SCRIPT_INPUT)
-BASE_DIR=$(jq -r '.source.base_dir // ""' < $SCRIPT_INPUT)
-USER=$(jq -r '.source.user // ""' < $SCRIPT_INPUT)
-SYNC_DIR=$(jq -r '.params.sync_dir // ""' < $SCRIPT_INPUT)
-RSYNC_OPTS_ARR=$(jq -r '.params.rsync_opts // ""' < $SCRIPT_INPUT)
-jq -re '.source.disable_version_path' < $SCRIPT_INPUT >/dev/null
+SERVERS=$(jq -r '.source.servers + [.source.server]|join(" ")' <<< $SCRIPT_INPUT)
+PORT=$(jq -r '.source.port // ""' <<< $SCRIPT_INPUT)
+BASE_DIR=$(jq -r '.source.base_dir // ""' <<< $SCRIPT_INPUT)
+USER=$(jq -r '.source.user // ""' <<< $SCRIPT_INPUT)
+SYNC_DIR=$(jq -r '.params.sync_dir // ""' <<< $SCRIPT_INPUT)
+RSYNC_OPTS_ARR=$(jq -r '.params.rsync_opts // ""' <<< $SCRIPT_INPUT)
+jq -re '.source.disable_version_path' <<< $SCRIPT_INPUT >/dev/null
 DISABLE_VERSION_PATH=$?
 
 if [ -z "$RSYNC_OPTS_ARR" ]
@@ -50,8 +49,8 @@ echo $SYNC_DIR     1>&2
 echo "DISABLE_VERSION_PATH=$DISABLE_VERSION_PATH" 1>&2
 
 mkdir -p ~/.ssh
-(jq -r '.source.private_key // empty' < $SCRIPT_INPUT) > ~/.ssh/server_key
-PRIVATE_KEY_PASSPHRASE="$(jq -r '.source.private_key_passphrase // empty' < $SCRIPT_INPUT)"
+(jq -r '.source.private_key // empty' <<< $SCRIPT_INPUT) > ~/.ssh/server_key
+PRIVATE_KEY_PASSPHRASE="$(jq -r '.source.private_key_passphrase // empty' <<< $SCRIPT_INPUT)"
 for SERVER in $SERVERS
 do
     echo -e "Host $SERVER\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
