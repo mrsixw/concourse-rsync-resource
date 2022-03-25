@@ -7,6 +7,7 @@
 * `base_dir`: *Required* Base directory in which to place the artifacts
 * `user`: *Required* User credential for login using ssh
 * `private_key`: *Required* Key for the specified user
+* `private_key_passphrase`: *Optional* Passphrase for the private key
 * `disable_version_path`: default is `false`. Then `false` `out` will put content in a directory named by the version name. This directory is omitted when this option is enabled. Note that `check` and `in` origins will treat all the files in the `base_dir` as versions in this case.
 
 All config required for each of the `in`, `out` and `check` behaviors.
