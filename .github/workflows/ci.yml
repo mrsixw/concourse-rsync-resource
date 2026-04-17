@@ -19,10 +19,110 @@ jobs:
           scandir: ./assets
           severity: warning
 
-  build-and-push:
-    name: Build and Push
+  build:
+    name: Build
     runs-on: ubuntu-latest
     needs: shellcheck
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  scan:
+    name: Trivy Scan
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          trivyignores: .trivyignore.yaml
+
+      - name: Verify Alpine version matches published
+        run: |
+          PUBLISHED=$(docker run --rm mrsixw/concourse-rsync-resource:latest cat /etc/alpine-release 2>/dev/null || echo "none")
+          BUILT=$(docker run --rm ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }} cat /etc/alpine-release)
+          echo "Published Alpine: $PUBLISHED"
+          echo "Built Alpine:     $BUILT"
+          PUBLISHED_MINOR=$(echo "$PUBLISHED" | cut -d. -f1-2)
+          BUILT_MINOR=$(echo "$BUILT" | cut -d. -f1-2)
+          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED_MINOR" != "$BUILT_MINOR" ]; then
+            echo "Error: Alpine minor version mismatch (published=$PUBLISHED, built=$BUILT)"
+            exit 1
+          fi
+
+  scout:
+    name: Docker Scout
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      packages: read
+      pull-requests: write
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker Scout CVE report
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }}
+          only-severities: critical,high
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  push:
+    name: Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: scan
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
 
@@ -41,36 +141,12 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
-      - name: Build image
-        uses: docker/build-push-action@v6
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          context: .
-          load: true
-          tags: mrsixw/concourse-rsync-resource:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: mrsixw/concourse-rsync-resource:${{ github.sha }}
-          format: table
-          exit-code: '1'
-          severity: CRITICAL
-          trivyignores: .trivyignore.yaml
-
-      - name: Verify Alpine version matches published
-        run: |
-          PUBLISHED=$(docker run --rm mrsixw/concourse-rsync-resource:latest cat /etc/alpine-release 2>/dev/null || echo "none")
-          BUILT=$(docker run --rm mrsixw/concourse-rsync-resource:${{ github.sha }} cat /etc/alpine-release)
-          echo "Published Alpine: $PUBLISHED"
-          echo "Built Alpine:     $BUILT"
-          PUBLISHED_MINOR=$(echo "$PUBLISHED" | cut -d. -f1-2)
-          BUILT_MINOR=$(echo "$BUILT" | cut -d. -f1-2)
-          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED_MINOR" != "$BUILT_MINOR" ]; then
-            echo "Error: Alpine minor version mismatch (published=$PUBLISHED, built=$BUILT)"
-            exit 1
-          fi
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -78,20 +154,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker Scout CVE report
-        uses: docker/scout-action@v1
-        with:
-          command: cves
-          image: local://mrsixw/concourse-rsync-resource:${{ github.sha }}
-          only-severities: critical,high
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push to Docker Hub
-        if: github.event_name == 'push'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Copy image from GHCR to Docker Hub
+        run: |
+          TAGS=$(echo "${{ steps.meta.outputs.tags }}" | awk '{print "-t " $0}' | tr '\n' ' ')
+          docker buildx imagetools create $TAGS ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }}
