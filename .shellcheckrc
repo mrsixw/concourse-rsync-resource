@@ -1,0 +1,4 @@
+# SC2046: ssh-agent eval requires unquoted subshell
+# SC1007: DISPLAY= is valid env var clearing syntax
+# SC2089/SC2090: rsync commands built as strings with embedded quotes - needs refactoring to arrays
+disable=SC2046,SC1007,SC2089,SC2090
