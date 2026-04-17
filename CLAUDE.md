@@ -43,7 +43,7 @@ All logic lives in three executable bash scripts under `assets/`, which Concours
 
 ## Issues and PRs
 
-Always raise a GitHub issue before opening a PR. The PR description must reference the issue with `Closes #N`. This applies even for small fixes spotted during other work — create the issue first, then the PR.
+Every PR must reference a GitHub issue with `Closes #N`. If one doesn't already exist, raise it first. If the work was triggered by an existing issue, use that — don't create a duplicate.
 
 ## Keeping docs in sync
 
