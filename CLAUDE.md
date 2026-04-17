@@ -41,6 +41,10 @@ All logic lives in three executable bash scripts under `assets/`, which Concours
 - `rsync_opts` param on `out` overrides the default `-Pav`.
 - Debug output goes to stderr; only the final JSON version string goes to stdout.
 
+## Keeping docs in sync
+
+When making changes to the CI pipeline (`.github/workflows/`), versioning behaviour, or release process, update the **CI / Releasing** section of `README.md` in the same PR to reflect the change.
+
 ## Commit messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/). The CI auto-tags on every master merge using these rules:
