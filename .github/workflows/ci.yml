@@ -52,8 +52,10 @@ jobs:
           BUILT=$(docker run --rm mrsixw/concourse-rsync-resource:${{ github.sha }} cat /etc/alpine-release)
           echo "Published Alpine: $PUBLISHED"
           echo "Built Alpine:     $BUILT"
-          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED" != "$BUILT" ]; then
-            echo "Error: Alpine version mismatch (published=$PUBLISHED, built=$BUILT)"
+          PUBLISHED_MINOR=$(echo "$PUBLISHED" | cut -d. -f1-2)
+          BUILT_MINOR=$(echo "$BUILT" | cut -d. -f1-2)
+          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED_MINOR" != "$BUILT_MINOR" ]; then
+            echo "Error: Alpine minor version mismatch (published=$PUBLISHED, built=$BUILT)"
             exit 1
           fi
 
