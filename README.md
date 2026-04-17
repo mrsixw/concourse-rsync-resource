@@ -99,7 +99,7 @@ shellcheck → build → scan  ─┐
 
 ### Versioning
 
-Releases are versioned automatically using [Conventional Commits](https://www.conventionalcommits.org/). On every merge to `master`, [`.github/workflows/tag.yml`](.github/workflows/tag.yml) creates a new git tag which then triggers the push job to publish a versioned image to Docker Hub.
+Releases are versioned automatically using [Conventional Commits](https://www.conventionalcommits.org/). When a PR is merged to `master`, [`.github/workflows/tag.yml`](.github/workflows/tag.yml) creates a single git tag (regardless of how many commits the PR contained), which then triggers the push job to publish a versioned image to Docker Hub.
 
 | Commit prefix | Version bump | Docker Hub tags published |
 |---|---|---|
