@@ -1,4 +1,7 @@
 # concourse-rsync-resource
+
+![CI](https://github.com/mrsixw/concourse-rsync-resource/actions/workflows/ci.yml/badge.svg)
+
 [concourse.ci](https://concourse.ci/ "concourse.ci Homepage") [resource](https://concourse.ci/implementing-resources.html "Implementing a resource") for persisting build artifacts on a shared storage location with rsync and ssh.
 
 ## Config
@@ -70,3 +73,23 @@ using the specified user credential. Rsync across artifacts from the input direc
 #### Parameters
 
 * `sync_dir`: *Optional.* Directory to be sync'd. If specified limit the directory to be sync'd to sync_dir. If not specified everything in the `put` will be sent (which could include container resources, whole build trees etc.)
+
+## CI / Releasing
+
+Every push to `master` and all pull requests run the CI pipeline:
+
+1. **Shellcheck** — lints all `assets/` bash scripts
+2. **Build** — builds the Docker image and pushes to GHCR as a staging registry
+3. **Trivy scan** — checks for CRITICAL CVEs (parallel with Scout)
+4. **Docker Scout** — posts a CVE breakdown as a PR comment (parallel with Trivy)
+5. **Push** — copies the image from GHCR to Docker Hub (master and tags only)
+
+Releases are versioned automatically using [Conventional Commits](https://www.conventionalcommits.org/). On every merge to `master` a new tag is created and the image is published to Docker Hub with full semver tags (`1.2.3`, `1.2`, `1`, `latest`).
+
+| Commit prefix | Version bump |
+|---|---|
+| `feat:` | minor |
+| `fix:`, `ci:`, `chore:`, etc. | patch |
+| `feat!:` / `BREAKING CHANGE:` | major |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide.
