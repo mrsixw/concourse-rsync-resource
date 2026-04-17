@@ -76,20 +76,35 @@ using the specified user credential. Rsync across artifacts from the input direc
 
 ## CI / Releasing
 
-Every push to `master` and all pull requests run the CI pipeline:
+Every push to `master` and all pull requests run the CI pipeline, defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
-1. **Shellcheck** — lints all `assets/` bash scripts
-2. **Build** — builds the Docker image and pushes to GHCR as a staging registry
-3. **Trivy scan** — checks for CRITICAL CVEs (parallel with Scout)
-4. **Docker Scout** — posts a CVE breakdown as a PR comment (parallel with Trivy)
-5. **Push** — copies the image from GHCR to Docker Hub (master and tags only)
+### Pipeline jobs
 
-Releases are versioned automatically using [Conventional Commits](https://www.conventionalcommits.org/). On every merge to `master` a new tag is created and the image is published to Docker Hub with full semver tags (`1.2.3`, `1.2`, `1`, `latest`).
+```
+shellcheck → build → scan  ─┐
+                   → scout  ├→ push (master / tags only)
+```
 
-| Commit prefix | Version bump |
-|---|---|
-| `feat:` | minor |
-| `fix:`, `ci:`, `chore:`, etc. | patch |
-| `feat!:` / `BREAKING CHANGE:` | major |
+**Shellcheck** lints all bash scripts in `assets/` using [shellcheck](https://www.shellcheck.net/) before anything is built.
+
+**Build** compiles the Docker image and pushes it to [GitHub Container Registry (GHCR)](https://ghcr.io) using the commit SHA as the tag. GHCR acts as a staging registry so subsequent jobs can pull the already-built image rather than rebuilding it.
+
+**Scan** (runs in parallel with Scout) pulls the image from GHCR and runs two checks:
+- [Trivy](https://trivy.dev/) scans for CRITICAL CVEs and fails the build if any are found that aren't listed in `.trivyignore.yaml`. Currently suppressed CVEs are all due to the Alpine 3.7 EOL base image and are tracked for resolution in [#30](https://github.com/mrsixw/concourse-rsync-resource/issues/30).
+- An Alpine version check ensures the base image minor version (`3.x`) matches the currently published image on Docker Hub, catching accidental base image upgrades.
+
+**Scout** (runs in parallel with Scan) runs [Docker Scout](https://docs.docker.com/scout/) against the GHCR image and posts a CRITICAL/HIGH CVE breakdown as a comment on the PR. Scout failures are informational and do not block the push.
+
+**Push** only runs on pushes to `master` or version tags. It copies the image directly from GHCR to Docker Hub using `docker buildx imagetools create` — a registry-to-registry manifest copy with no rebuild. The image is published with full semver tags.
+
+### Versioning
+
+Releases are versioned automatically using [Conventional Commits](https://www.conventionalcommits.org/). On every merge to `master`, [`.github/workflows/tag.yml`](.github/workflows/tag.yml) creates a new git tag which then triggers the push job to publish a versioned image to Docker Hub.
+
+| Commit prefix | Version bump | Docker Hub tags published |
+|---|---|---|
+| `feat:` | minor | `1.2.0`, `1.2`, `1`, `latest` |
+| `fix:`, `ci:`, `chore:`, etc. | patch | `1.1.1`, `1.1`, `1`, `latest` |
+| `feat!:` / `BREAKING CHANGE:` | major | `2.0.0`, `2.0`, `2`, `latest` |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide.
