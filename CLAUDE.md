@@ -41,6 +41,17 @@ All logic lives in three executable bash scripts under `assets/`, which Concours
 - `rsync_opts` param on `out` overrides the default `-Pav`.
 - Debug output goes to stderr; only the final JSON version string goes to stdout.
 
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/). The CI auto-tags on every master merge using these rules:
+
+- `feat:` — new feature → minor bump
+- `fix:` — bug fix → patch bump
+- `docs:`, `refactor:`, `test:`, `chore:`, `ci:` → patch bump
+- `feat!:` or `BREAKING CHANGE:` in footer → major bump
+
+Keep the summary short and imperative, e.g. `fix: quote ssh-agent subshell`.
+
 ## Concourse resource protocol
 
 - **`check` stdout**: JSON array of version objects, newest last — `[{"ref": "..."}]`
