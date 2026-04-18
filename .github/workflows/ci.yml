@@ -19,10 +19,25 @@ jobs:
           scandir: ./assets
           severity: warning
 
+  test:
+    name: Bats unit tests
+    runs-on: ubuntu-latest
+    needs: shellcheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Run tests
+        run: bats test/
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: shellcheck
+    needs: test
     permissions:
       contents: read
       packages: write
