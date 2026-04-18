@@ -84,7 +84,6 @@ jobs:
           format: table
           exit-code: '1'
           severity: CRITICAL
-          trivyignores: .trivyignore.yaml
 
       - name: Verify Alpine version matches published
         run: |

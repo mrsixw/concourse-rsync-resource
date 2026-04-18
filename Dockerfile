@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.21
 LABEL org.opencontainers.image.authors="Steve Williams <mrsixw@gmail.com>"
 
 RUN apk update && apk upgrade && \
