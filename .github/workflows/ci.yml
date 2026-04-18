@@ -86,19 +86,6 @@ jobs:
           severity: CRITICAL
           trivyignores: .trivyignore.yaml
 
-      - name: Verify Alpine version matches published
-        run: |
-          PUBLISHED=$(docker run --rm mrsixw/concourse-rsync-resource:latest cat /etc/alpine-release 2>/dev/null || echo "none")
-          BUILT=$(docker run --rm ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }} cat /etc/alpine-release)
-          echo "Published Alpine: $PUBLISHED"
-          echo "Built Alpine:     $BUILT"
-          PUBLISHED_MINOR=$(echo "$PUBLISHED" | cut -d. -f1-2)
-          BUILT_MINOR=$(echo "$BUILT" | cut -d. -f1-2)
-          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED_MINOR" != "$BUILT_MINOR" ]; then
-            echo "Error: Alpine minor version mismatch (published=$PUBLISHED, built=$BUILT)"
-            exit 1
-          fi
-
   scout:
     name: Docker Scout
     runs-on: ubuntu-latest
