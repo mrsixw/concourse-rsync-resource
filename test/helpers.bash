@@ -57,3 +57,9 @@ EOF
 
   export PATH="$MOCK_BIN:$PATH"
 }
+
+teardown() {
+  # scripts run `chmod -R 600 ~/.ssh` which sets the directory itself to 600
+  # (no execute bit), preventing bats from cleaning up BATS_TEST_TMPDIR.
+  chmod -R u+rwX "$HOME" 2>/dev/null || true
+}
