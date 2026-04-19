@@ -26,10 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install bats-core
-        run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
+      - name: Install bats
+        run: sudo apt-get install -y bats
 
       - name: Run tests
         run: bats test/
