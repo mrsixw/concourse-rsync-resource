@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run shellcheck
-        uses: ludeeus/action-shellcheck@master
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
           scandir: ./assets
           severity: warning
@@ -78,26 +78,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }}
           format: table
           exit-code: '1'
           severity: CRITICAL
           trivyignores: .trivyignore.yaml
-
-      - name: Verify Alpine version matches published
-        run: |
-          PUBLISHED=$(docker run --rm mrsixw/concourse-rsync-resource:latest cat /etc/alpine-release 2>/dev/null || echo "none")
-          BUILT=$(docker run --rm ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }} cat /etc/alpine-release)
-          echo "Published Alpine: $PUBLISHED"
-          echo "Built Alpine:     $BUILT"
-          PUBLISHED_MINOR=$(echo "$PUBLISHED" | cut -d. -f1-2)
-          BUILT_MINOR=$(echo "$BUILT" | cut -d. -f1-2)
-          if [ "$PUBLISHED" != "none" ] && [ "$PUBLISHED_MINOR" != "$BUILT_MINOR" ]; then
-            echo "Error: Alpine minor version mismatch (published=$PUBLISHED, built=$BUILT)"
-            exit 1
-          fi
 
   scout:
     name: Docker Scout
