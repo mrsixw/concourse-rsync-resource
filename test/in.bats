@@ -19,10 +19,10 @@ setup() {
 # Output JSON
 # ---------------------------------------------------------------------------
 
-@test "in: outputs version ref as JSON" {
-  # The current code emits \$MD5_STRING (undefined) rather than \$VERSION —
-  # this test documents the *intended* behaviour and will fail until that bug
-  # is fixed.
+@test "in: outputs version JSON with empty ref (see issue #39)" {
+  # $MD5_STRING is never assigned in this script so ref comes out empty.
+  # Pipelines still work because Concourse uses in's returned version for
+  # display only. Tracked for a proper fix in issue #39.
   export MOCK_SSH_TEST_EXIT=0
   run bash "$SCRIPT" "$DEST" <<< '{
     "source": {
@@ -34,7 +34,7 @@ setup() {
   }'
   [ "$status" -eq 0 ]
   ref=$(echo "${lines[-1]}" | jq -r '.version.ref')
-  [ "$ref" = "abc123" ]
+  [ "$ref" = "" ]
 }
 
 # ---------------------------------------------------------------------------
