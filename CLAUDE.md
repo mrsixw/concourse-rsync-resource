@@ -45,6 +45,8 @@ All logic lives in three executable bash scripts under `assets/`, which Concours
 
 Every PR must reference a GitHub issue with `Closes #N`. If one doesn't already exist, raise it first. If the work was triggered by an existing issue, use that — don't create a duplicate.
 
+After pushing a branch, always create a PR so that CI runs. CI only triggers on `pull_request` events (or push to `master`) — pushing a branch alone does not run checks.
+
 ## Keeping docs in sync
 
 When making changes to the CI pipeline (`.github/workflows/`), versioning behaviour, or release process, update the **CI / Releasing** section of `README.md` in the same PR to reflect the change.
