@@ -62,7 +62,7 @@ if [ -z "$VERSION" ]; then
   exit 1
 else
   if (ssh -t -i ~/.ssh/server_key -p $PORT $USER@$SERVER '[ -d $SRC_DIR ]' ); then
-    RSYNC_CMD="rsync -Pav -e 'ssh -i ~/.ssh/server_key -p $PORT' $USER@$SERVER:$SRC_DIR/* $DEST_DIR"
+    RSYNC_CMD="rsync -Pavr -e 'ssh -i ~/.ssh/server_key -p $PORT' $USER@$SERVER:$SRC_DIR/ $DEST_DIR"
     echo $RSYNC_CMD  1>&2
     eval $RSYNC_CMD  1>&2
     if [ $? -eq 0 ]; then
