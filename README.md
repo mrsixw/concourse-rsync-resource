@@ -87,15 +87,15 @@ shellcheck → build → scan  ─┐
 
 **Shellcheck** lints all bash scripts in `assets/` using [shellcheck](https://www.shellcheck.net/) before anything is built.
 
-**Build** compiles the Docker image and pushes it to [GitHub Container Registry (GHCR)](https://ghcr.io) using the commit SHA as the tag. GHCR acts as a staging registry so subsequent jobs can pull the already-built image rather than rebuilding it.
+**Build** compiles a multi-platform Docker image (`linux/amd64` and `linux/arm64`) with Docker Buildx, using QEMU to emulate arm64, and pushes it to [GitHub Container Registry (GHCR)](https://ghcr.io) using the commit SHA as the tag. GHCR acts as a staging registry so subsequent jobs can pull the already-built image rather than rebuilding it.
 
 **Scan** (runs in parallel with Scout) pulls the image from GHCR and runs two checks:
-- [Trivy](https://trivy.dev/) scans for CRITICAL CVEs and fails the build if any are found that aren't listed in `.trivyignore.yaml`. Currently suppressed CVEs are all due to the Alpine 3.7 EOL base image and are tracked for resolution in [#30](https://github.com/mrsixw/concourse-rsync-resource/issues/30).
+- [Trivy](https://trivy.dev/) scans each platform image (one matrix job per architecture) for CRITICAL CVEs and fails the build if any are found that aren't listed in `.trivyignore.yaml`. Currently suppressed CVEs are all due to the Alpine 3.7 EOL base image and are tracked for resolution in [#30](https://github.com/mrsixw/concourse-rsync-resource/issues/30).
 - An Alpine version check ensures the base image minor version (`3.x`) matches the currently published image on Docker Hub, catching accidental base image upgrades.
 
 **Scout** (runs in parallel with Scan) runs [Docker Scout](https://docs.docker.com/scout/) against the GHCR image and posts a CRITICAL/HIGH CVE breakdown as a comment on the PR. Scout failures are informational and do not block the push.
 
-**Push** only runs on pushes to `master` or version tags. It copies the image directly from GHCR to Docker Hub using `docker buildx imagetools create` — a registry-to-registry manifest copy with no rebuild. The image is published with full semver tags.
+**Push** only runs on pushes to `master` or version tags. It copies the image directly from GHCR to Docker Hub using `docker buildx imagetools create` — a registry-to-registry manifest copy with no rebuild, which carries over the full multi-platform manifest list. The image is published with full semver tags.
 
 ### Versioning
 
