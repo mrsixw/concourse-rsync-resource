@@ -65,6 +65,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Smoke test image tools
+        run: |
+          for platform in linux/amd64 linux/arm64; do
+            echo "Checking $platform"
+            docker run --rm --platform "$platform" \
+              ghcr.io/mrsixw/concourse-rsync-resource:${{ github.sha }} \
+              sh -ec 'for tool in bash rsync jq ssh ssh-agent ssh-add md5sum cut cat ls; do command -v "$tool"; done'
+          done
+
   scan:
     name: Trivy Scan (${{ matrix.platform }})
     runs-on: ubuntu-latest
